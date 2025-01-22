@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "dfeqa"
+version = "0.0.1"
+authors = [
+  { name="mrheducation", email="martin1.harris@education.gov.uk" },
+]
+description = "helpers for quality checking data"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "pandas",
+  "sqlalchemy",
+  "pyodbc",
+  "seaborn",
+  "regex",
+]
+
+[project.optional-dependencies]
+dev = [
+  "ipykernel",
+  "pytest-cov ~=3.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/quhack/dfe-qa"
+Issues = "https://github.com/quhack/dfe-qa/issues"
+
+[tool.pytest.ini_options]
+markers = [
+  "slow",
+]
+
+addopts = [
+    "--import-mode=importlib",
+    "--cov=src",
+#    "--cov-append",
+    "--cov-report=html",
+    "--cov-report=term-missing",
+#    "--cov-fail-under=95",
+]
+testpaths = [
+  "tests"
+]
+
+[tool.coverage.run]
+  source = ["src"]
+
+[tool.hatch.build]
+  sources = ["src"]
+
+[tool.hatch.build.targets.wheel]
+  core-metadata-version = "2.1"
+  packages = ["src/dfeqa"]
