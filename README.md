@@ -25,6 +25,7 @@ import the items as follows
   - `dob`* String containing the date of birth
   - `year`* String containing the test-year for which the group is required (i.e. the calendar year in which May falls).
   - `format` Format of the date of birth. If not supplied, defaults to YYYYMMDD.
+  - `upper_year` defaults to reporting years R to 8, but can set upper limit to something else by passing an integer in this argument.
 
 - `summarise_str_lengths` Function which takes a Pandas Series and returns a frequency distribution.
   - `data_column` Pandas Series containing strings to be analysed.
@@ -41,6 +42,7 @@ import the items as follows
   - `groups` The column containing identifiers where multiple groups have been summarised.
   - `min_range` Optional vertical line indicating the lower end of the range. Multiple lines can be drawn if a list is passed.
   - `max_range` As `min_range` above - intended to indicate upper end of range.
+  - `x_rescale` pass an integer specifying the number of values to skip between values on x-axis, or a list of the indexes of the values to keep in x-axis
 
 - `parse_text` Templating system for generating dynamic text. 
   - `in_text` Text with variables surrounded by double curly-braces `{{` `}}` to indicate where text should be dynamically generated. If the braces only contain a variable name within the braces then the value of the variable is inserted in the text. If there are three segments separated by a vertical bar, then the first segment is a boolean condition; if true the second segment is returned, otherwise the last segment is returned. 
