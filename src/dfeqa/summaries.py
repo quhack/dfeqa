@@ -17,6 +17,7 @@ def summarise_str_lengths(data_column: pd.Series):
     # returned series will have missing data points filled with 0
     return s.reindex(range(max(s.index) + 1)).fillna(0).astype(int)
 
+
 def fd(data: pd.DataFrame|pd.Series|list, cols: list = list(), ids: list = None):
     """frequency distributions - provide a dataframe with cols to create frequencies from or
     a list of Pandas Series
@@ -44,16 +45,24 @@ def fd(data: pd.DataFrame|pd.Series|list, cols: list = list(), ids: list = None)
             for i,x in enumerate(cols)
         ], axis=0)
 
-def freqchart(chartdata:pd.DataFrame, value_col: str, freq_col: str, groups:str = None, min_range: int|tuple|list = None, max_range: int|tuple|list = None):
+
+def freqchart(chartdata:pd.DataFrame, value_col: str, freq_col: str, groups:str = None,
+        min_range: int|tuple|list = None, max_range: int|tuple|list = None,
+        x_rescale: int|list=None):
     """return barchart comparing frequency dists of a number of defined columns
     optionally pass min_range and max_range (integer, list or tuple) for vlines indicating range"""
     
     p = sns.barplot(x=value_col, y=freq_col, hue = groups,
-        data = chartdata, native_scale=True
+        data = chartdata
         )
-    no_ticks = chartdata[value_col].max().astype(int) // 5 + 1
-    p.set_xticks([x * 5 for x in range(no_ticks)])
-
+    if x_rescale:
+        assert isinstance(x_rescale, (int, list))
+        ticks = p.get_xticks()
+        if isinstance(x_rescale, int):
+            p.set_xticks([x for i,x in enumerate(ticks) if i%2 == 0])
+        elif isinstance(x_rescale, list):
+            p.set_xticks([ticks[x] for x in x_rescale])
+ 
     # vertical lines showing range
     if isinstance(min_range,(list,tuple)):
         for i,x in enumerate(min_range):
@@ -67,9 +76,8 @@ def freqchart(chartdata:pd.DataFrame, value_col: str, freq_col: str, groups:str 
     elif isinstance(max_range,int):
         p.axvline(x=max_range, color=sns.color_palette()[0])
 
-    # g.fig.set_figwidth(12)
-    # g.fig.set_figheight(6)
     return p
+
 
 def parse_text (in_text, data: Union[tuple, dict]) -> str:
     """pattern 1 returns the value stored in data store.
