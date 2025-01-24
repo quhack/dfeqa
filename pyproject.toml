@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dfeqa"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
   { name="mrheducation", email="martin1.harris@education.gov.uk" },
 ]
