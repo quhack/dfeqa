@@ -21,3 +21,13 @@ def test_really_young_year_group():
 def test_parsed_text():
     my_data = {'my_val': "to catch one"}
     assert parse_text("send a maniac {{my_val}}",my_data) == "send a maniac to catch one"
+
+def test_recursive_conditional_text():
+    my_data = {'my_val': "to catch one",'boggle': "good", 'my_val2':"from a brutish bygone era"}
+    assert parse_text("send a maniac {{'boggle = good'|{{my_val}}|{{my_val2}}}}",my_data) == "send a maniac from a brutish bygone era"
+
+def test_academic_year_as_string():
+    assert year_group("23092012","2024") == 'y6'
+
+def test_upper_year_as_string():
+    assert year_group("01012010","2024", upper_year = "6") == 'abovey6'

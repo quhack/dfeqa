@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dfeqa"
-version = "0.0.3"
 authors = [
   { name="mrheducation", email="martin1.harris@education.gov.uk" },
 ]
 description = "helpers for quality checking data"
 readme = "README.md"
+dynamic = ["version"]
 requires-python = ">=3.8"
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -22,17 +22,22 @@ dependencies = [
   "pyodbc",
   "seaborn",
   "regex",
+  "quarto",
 ]
 
 [project.optional-dependencies]
 dev = [
   "ipykernel",
   "pytest-cov ~=3.0.0",
+  "hatch",
 ]
 
 [project.urls]
 Homepage = "https://github.com/quhack/dfeqa"
 Issues = "https://github.com/quhack/dfeqa/issues"
+
+[project.scripts]
+dfeqa = "dfeqa.cmdline:execute"
 
 [tool.pytest.ini_options]
 markers = [
@@ -65,3 +70,6 @@ only-include = [
 
 [tool.hatch.build.targets.wheel]
   sources = ["src"]
+
+[tool.hatch.version]
+path = "src/dfeqa/__about__.py"

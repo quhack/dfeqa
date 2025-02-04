@@ -109,7 +109,7 @@ def parse_text (in_text, data: Union[tuple, dict]) -> str:
         _s = match_obj.group(0)
         _op1 = match_obj.group(1).strip()
         _operator = match_obj.group(2).strip()
-        assert _operator in ["<","<=","=",">=",">"], \
+        assert _operator in ["<","<=","=",">=",">", "!="], \
             "operator in text template not supported"
         _op2 = match_obj.group(3).strip()
         operand1 = _extract_from(_op1,data)

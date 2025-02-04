@@ -15,7 +15,7 @@ import the items as follows
   - `term` one of 'Spring', 'Summer', 'Autumn'
   - `NCYear` The National Curriculum year group. Can be a single year group, or a list of year groups.
   - `columns` If not provided, all columns will be extracted. A single column name or a list of column names can be provided.
-  -`conn` Connection string defining how database connection should be made. If not provided will try to use an environment variable `default_conn`.
+  - `conn` Connection string defining how database connection should be made. If not provided will try to use an environment variable `default_conn`.
 
 - `valid_name_regex` A regex string to identify valid name strings. They should contain letters, including unicode letters with accents. Other characters such as apostrophes, hyphens and numbers are also allowed, but cannot be the only contents of the string. Ideal for use in calculating 'valid' flags.
 
@@ -24,7 +24,7 @@ import the items as follows
 - `year_group` Function to calculate the expected National Curriculum year group given a date of birth.
   - `dob`* String containing the date of birth
   - `year`* String containing the test-year for which the group is required (i.e. the calendar year in which May falls).
-  - `format` Format of the date of birth. If not supplied, defaults to YYYYMMDD.
+  - `format` Format of the date of birth. If not supplied, defaults to DDMMYYYY.
   - `upper_year` defaults to reporting years R to 8, but can set upper limit to something else by passing an integer in this argument.
 
 - `summarise_str_lengths` Function which takes a Pandas Series and returns a frequency distribution.
