@@ -5,14 +5,7 @@ from pathlib import Path
 import dfeqa
 from dfeqa.cmdline import execute
 
-def test_generate_command_runs():
-    with pytest.raises(SystemExit) as pytest_wrapped_e:
-        execute(['dfeqa', 'createreport', 'data_quality', 'testfile.txt'])
-    assert pytest_wrapped_e.type == SystemExit
-    assert pytest_wrapped_e.value.code == 0
-
-def test_generate_from_template_works(tmpdir):
-    print(tmpdir)
+def test_generate_from_template(tmpdir):
     os.chdir(tmpdir)
     with pytest.raises(SystemExit) as pytest_wrapped_e:
         execute(['dfeqa', 'createreport', 'data_quality', 'testfile.txt'])

@@ -22,11 +22,23 @@ dependencies = [
   "pyodbc",
   "seaborn",
   "regex",
-  "quarto",
+  "jinja2",
+  "python-dotenv",
 ]
 
 [project.optional-dependencies]
+user = [
+  "quarto",
+  "pyyaml",
+  "nbformat",
+  "nbclient",
+  "ipykernel",
+]
 dev = [
+  "quarto",
+  "pyyaml",
+  "nbformat",
+  "nbclient",
   "ipykernel",
   "pytest-cov ~=3.0.0",
   "hatch",

@@ -1,29 +1,29 @@
 import pytest
 from matplotlib import axes
-from dfeqa import fd, freqchart
+from dfeqa import fd, barchart
 
 
-def test_freq_dist_chart_generates(Data_For_FD):
-    assert isinstance(freqchart(fd(Data_For_FD), 
-        value_col = 'length', 
+def test_freq_dist_chart_generates(People_As_Frame):
+    assert isinstance(barchart(fd(People_As_Frame, long=True), 
+        value_col = 'value', 
         freq_col = 'count', 
         groups = 'group', 
         min_range = (0,5), 
         max_range = (35,30)), axes._axes.Axes)
 
 
-def test_freq_dist_chart_generates_with_ints(Data_For_FD):
-    assert isinstance(freqchart(fd(Data_For_FD), 
-        value_col = 'length', 
+def test_freq_dist_chart_generates_with_ints(People_As_Frame):
+    assert isinstance(barchart(fd(People_As_Frame, long=True), 
+        value_col = 'value', 
         freq_col = 'count', 
         groups = 'group', 
         min_range = 0, 
         max_range = 35), axes._axes.Axes)
 
 
-def test_freq_chart_reformats_string_xaxis(Data_For_FD):
-    assert isinstance(freqchart(fd(Data_For_FD), 
-        value_col = 'length', 
+def test_freq_chart_reformats_string_xaxis(People_As_Frame):
+    assert isinstance(barchart(fd(People_As_Frame, long=True), 
+        value_col = 'value', 
         freq_col = 'count', 
         groups = 'group', 
         min_range = 0, 
@@ -31,9 +31,9 @@ def test_freq_chart_reformats_string_xaxis(Data_For_FD):
         x_rescale = 2), axes._axes.Axes)
 
 
-def test_freq_chart_reformats_list_xaxis(Data_For_FD):
-    assert isinstance(freqchart(fd(Data_For_FD), 
-        value_col = 'length', 
+def test_freq_chart_reformats_list_xaxis(People_As_Frame):
+    assert isinstance(barchart(fd(People_As_Frame, long=True), 
+        value_col = 'value', 
         freq_col = 'count', 
         groups = 'group', 
         min_range = 0, 

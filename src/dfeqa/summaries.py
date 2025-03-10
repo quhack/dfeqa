@@ -1,5 +1,7 @@
 from typing import Union, Tuple
+import warnings
 import pandas as pd
+from matplotlib.ticker import MaxNLocator
 import seaborn as sns
 import regex
 _pat1 = regex.compile(r'\{\{([^\{\}\|]*)\}\}')
@@ -10,56 +12,102 @@ _pat3 = regex.compile(r'{{((?:[^<>={}!]|{{(?1)}})+)'
                         r'((?:[^{}]++|{(?!{)|}(?=})|{{(?5)}}|(?0))*)}}')
 
 
-def summarise_str_lengths(data_column: pd.Series):
-    """ takes a Pandas Series and returns a Series of length frequencies"""
-
-    s = data_column.str.len().fillna(0).astype(int).value_counts()
-    # returned series will have missing data points filled with 0
-    return s.reindex(range(max(s.index) + 1)).fillna(0).astype(int)
-
-
-def fd(data: pd.DataFrame|pd.Series|list, cols: list = list(), ids: list = None):
+def fd(data: pd.DataFrame|pd.Series|list, cols: list = None, ids: list = None, long=False, value_columnname=None):
     """frequency distributions - provide a dataframe with cols to create frequencies from or
     a list of Pandas Series
     return long-form summary of freqency distribution of specified columns
     optional ids provides labels for groups in returned data"""
 
-    if isinstance(data, pd.Series):
-        # single series
-        return summarise_str_lengths(data)
-    elif isinstance(data, (list, tuple)):
-        if not(ids): ids = [x.name for x in data]
-        # collection of series
-        return pd.concat([
-            summarise_str_lengths(x).reset_index().rename(columns={x.name: 'length'}).assign(group = ids[i])
-            for i, x in enumerate(data)
-        ], axis=0)
-    elif isinstance(data, pd.DataFrame):
-        # pandas dataframe
-        # process all if no columns specified
-        if not(cols):
-            cols = data.columns
-        if not(ids): ids = [x for x in cols]
-        return pd.concat([
-            summarise_str_lengths(data[x]).reset_index().rename(columns={x: 'length'}).assign(group = ids[i])
-            for i,x in enumerate(cols)
-        ], axis=0)
+    def _series_fd(s: pd.Series):
+        return s.value_counts(dropna=False)
 
+    class _fd:
+        def __init__(self, data: (list | pd.Series | pd.DataFrame), cols=None, ids=None):
+            assert isinstance(data, (list, pd.Series, pd.DataFrame))
+            self._data = data
+            self._cols = cols
+            self._ids = ids
 
-def freqchart(chartdata:pd.DataFrame, value_col: str, freq_col: str, groups:str = None,
+        @property
+        def source(self):
+            return self._data
+
+        @property
+        def long_data(self):
+            d = pd.DataFrame()
+            for colnam, col in self._data.items():
+                d = pd.concat([d, col.reset_index(drop=True).assign(group=colnam)], axis=0)
+            return d
+
+        @property
+        def dist(self):
+            d = pd.DataFrame()
+            if isinstance(self._data, pd.Series):
+                d = pd.DataFrame(_series_fd(self._data).fillna(0).astype(int)\
+                    .reset_index(drop=False)).rename(columns={self._data.name:'value'})
+            elif isinstance(self._data, (list, tuple)):
+                assert self._ids is None or len(self._data) == len(self._ids)
+                # also expect ._ids elements are unique, but if not an error will be raised
+                colnames = self._ids or [x.name for x in self._data]
+                d = pd.concat([_series_fd(x.rename(None)).\
+                    rename(colnames[i]) for i, x in enumerate(data)], axis=1).fillna(0)\
+                        .astype(int).reset_index(drop=False).rename(columns={'index': 'value'})
+            else:
+                assert isinstance(self._data, pd.DataFrame)
+                target_columns = self._cols if self._cols is not None else self._data.columns.tolist()
+                d = pd.concat([_series_fd(x).\
+                    rename(label) for label, x in self._data.items() if label in target_columns], axis = 1)\
+                        .fillna(0).astype(int).reset_index(drop=False).rename(columns={'index': 'value'})
+                if self._ids is not None:
+                    assert len(target_columns) == len(self._ids)
+                    d = d.rename(columns={x: self._ids[i] for i,x in enumerate(target_columns)})
+
+            return d.sort_values('value').reset_index(drop=True)
+
+        @property
+        def dist_long(self):
+            return self.dist.melt(id_vars=['value'], var_name="group", value_name="count")
+
+    if long:
+        returndata = _fd(data, cols=cols, ids=ids).dist_long
+    else:
+        returndata = _fd(data, cols=cols, ids=ids).dist
+    if value_columnname:
+        returndata = returndata.rename(columns = {'value': value_columnname})
+    return returndata
+
+def freqchart(chartdata:pd.DataFrame, value_col: str, freq_col: str = None, groups:str = None,
+        min_range: int|tuple|list = None, max_range: int|tuple|list = None,
+        x_rescale: int|list=None):
+        warnings.warn("freqchart() is deprecated and will be removed in a future release. Use barchart() instead.", DeprecationWarning)
+        return barchart(chartdata, value_col, freq_col, groups, min_range, max_range, x_rescale)
+
+def barchart(value_col: str, chartdata:pd.DataFrame = None, freq_col: str = None, groups:str = None,
         min_range: int|tuple|list = None, max_range: int|tuple|list = None,
         x_rescale: int|list=None):
     """return barchart comparing frequency dists of a number of defined columns
     optionally pass min_range and max_range (integer, list or tuple) for vlines indicating range"""
-    
-    p = sns.barplot(x=value_col, y=freq_col, hue = groups,
-        data = chartdata
-        )
+
+    y_integers = None
+
+    if chartdata is not None and value_col is not None and freq_col is not None:
+        p = sns.barplot(x=value_col, y=freq_col, hue = groups,
+            data = chartdata
+            )
+        y_integers = True if chartdata[freq_col].apply(isinstance,args = [int]).all() else False
+    elif chartdata is not None and isinstance(value_col,str) and freq_col is None:
+        p = sns.countplot(data = chartdata, x=value_col, hue=groups)
+        y_integers = True
+    elif chartdata is None and isinstance(value_col, pd.Series) and freq_col is None:
+        p = sns.countplot(x=value_col)
+        y_integers = True
+    else:
+        raise RuntimeError('unable to generate chart from given parameters')
     if x_rescale:
         assert isinstance(x_rescale, (int, list))
         ticks = p.get_xticks()
         if isinstance(x_rescale, int):
-            p.set_xticks([x for i,x in enumerate(ticks) if i%2 == 0])
+            p.set_xticks([x for i,x in enumerate(ticks) if i % x_rescale == 0])
         elif isinstance(x_rescale, list):
             p.set_xticks([ticks[x] for x in x_rescale])
  
@@ -75,6 +123,9 @@ def freqchart(chartdata:pd.DataFrame, value_col: str, freq_col: str, groups:str 
             p.axvline(x=x, color=sns.color_palette()[i])
     elif isinstance(max_range,int):
         p.axvline(x=max_range, color=sns.color_palette()[0])
+
+    if y_integers:
+        p.yaxis.set_major_locator(MaxNLocator(integer=True))
 
     return p
 
@@ -128,3 +179,26 @@ def parse_text (in_text, data: Union[tuple, dict]) -> str:
 
     returntext = regex.sub(_pat3, _f3, in_text)
     return regex.sub(_pat1, _f1, returntext)
+
+
+def status_summary(objectives: list[str], rags: list[str], down=False):
+    """return a formatted list of statements with RAG statuses;
+    specify down=true to list verically, or leave the default to list across the page
+    rags (statuses) can be None, red, amber, green or grey"""
+    assert len(objectives) == len(rags)
+    df = pd.DataFrame(objectives)
+    if not down:
+        df = df.T
+    s = df.style.hide().hide(axis=1)
+
+    s.set_table_styles([
+        {'selector': 'td', 'props': 'text-align: center; border-radius: 10px; width: {}%;'.format(str(int(100 / len(objectives))))},
+        {'selector': '.grey', 'props': 'background-color:rgb(205, 205, 205);'},
+        {'selector': '.green', 'props': 'background-color: #e6ffe6;'},
+        {'selector': '.amber', 'props': 'background-color:#ffdfb3;'},
+        {'selector': '.red', 'props': 'background-color: #ffe6e6;'},
+    ], overwrite=False)
+    cell_colour = pd.DataFrame(rags)
+    if not down:
+        cell_colour = cell_colour.T
+    return s.set_td_classes(cell_colour)

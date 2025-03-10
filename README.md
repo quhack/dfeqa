@@ -1,5 +1,5 @@
 # Introduction 
-DfE-QA helper functions - covering a variety of checks primarily to report on the quality of data.
+DfE-QA Python helper functions - covering a variety of checks primarily to report on the quality of data.
 
 # Getting Started
 python -m pip install dfeqa
@@ -27,13 +27,11 @@ import the items as follows
   - `format` Format of the date of birth. If not supplied, defaults to DDMMYYYY.
   - `upper_year` defaults to reporting years R to 8, but can set upper limit to something else by passing an integer in this argument.
 
-- `summarise_str_lengths` Function which takes a Pandas Series and returns a frequency distribution.
-  - `data_column` Pandas Series containing strings to be analysed.
-
 - `fd` Function to create multiple frequency distributions in long format from a Series, a Data Frame or a list of Series.
   - `data`* A Series (for a single frequency distribution) a DataFrame (can be one or more distributions) a list of Series (for multiple distributions)
   - `cols` If `data` is a DataFrame then this argument specifies which columns should be summarised.
   - `ids` Labels to identify the distributions in the output. If not provided, the original column names will be used. This is useful if analysing datasets in the same format from different year groups (provided as a list of Series).
+  - `long` Data is provided in wide format unless this flag is set, when it is returned in long format.
 
 - `freqchart` Function to create a barchart comparing frequency distributions of a number of defined columns; optionally pass min_range and max_range (integer, list or tuple) for vlines indicating range
   - `chartdata`* Pandas dataframe in long-format containing the data to be visualised.

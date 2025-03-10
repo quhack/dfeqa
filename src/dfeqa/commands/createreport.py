@@ -20,7 +20,7 @@ class Command(DfeqaCommand):
         self.tmpl_dict = {path.stem: str(path) for path in pathlist}
 
     def syntax(self) -> str:
-        return "<%s> [<new_filename>]" % " | ".join(self.templates_dict.keys())
+        return "{%s} [<new_filename>]" % "|".join(self.templates_dict.keys())
 
     def short_desc(self) -> str:
         return "Create new report"
@@ -29,7 +29,7 @@ class Command(DfeqaCommand):
         super().add_options(parser)
         parser.add_argument('template', nargs=1)
         parser.add_argument('filename', nargs='?')
-        parser.add_argument('-c','--custom', action='store_true', help="custom help")
+        parser.add_argument('-c','--custom', action='store_true', help="flag to update report title with filename")
 
     def run(self, args: list[str], opts: argparse.Namespace) -> None:
         print(" ... dfeqa create report ...\n")
@@ -55,7 +55,7 @@ class Command(DfeqaCommand):
         if (opts.custom): d['report_title'] = output_reportname
         with open(self.templates_dict[template], 'r') as reader:
             t = reader.read()
-            t = parse_text(t, d)
+            if (opts.custom): t = parse_text(t, d)
         with open(output_path_with_file, 'w') as writer:
             writer.write(t)
         print(f"template '{template}' ready.")

@@ -15,44 +15,41 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(skipper)
 
 @pytest.fixture
-def Data_For_FD():
-    return pd.DataFrame([
-        {'forename': 'John', 'surname': 'Spartan'},
-        {'forename': 'Simon', 'surname': 'Phoenix'},
-        {'forename': 'Lenina', 'surname': 'Huxley'},
-        {'forename': 'Raymond', 'surname': 'Cocteau'},
-        {'forename': 'Alfredo', 'surname': 'Garcia'},
-        {'forename': 'George', 'surname': 'Earle'},
-        {'forename': 'Associate', 'surname': 'Bob'},
-        {'forename': 'Edgar', 'surname': 'Friendly'},
-        {'forename': 'Zachary', 'surname': 'Lamb'},
-        {'forename': 'William', 'surname': 'Smithers'}
+def List_Of_Series():
+    return [
+        pd.Series(['John', 'Simon', 'Lenina', 'Raymond', 'Alfredo', 'George', 'Associate', 'Edgar', 'Zachary', 'William'], name='forename'),
+        pd.Series(['Spartan', 'Phoenix', 'Huxley', 'Cocteau', 'Garcia', 'Earle', 'Bob', 'Friendly', 'Lamb', 'Smithers'], name='surname')
     ]
+
+@pytest.fixture
+def People_As_Frame(List_Of_Series):
+    return pd.concat(List_Of_Series, axis=1)
+
+@pytest.fixture
+def Wide_Frame_Length_Summary(List_Of_Series):
+    return pd.concat(
+        [x.str.len().value_counts(dropna=False).rename(x.name)\
+            for x in List_Of_Series], axis=1
+            ).fillna(0).astype(int).sort_index().reset_index(drop=False).rename(columns={'index':'value'})
+
+@pytest.fixture
+def Long_Frame_Length_Summary(Wide_Frame_Length_Summary):
+    return Wide_Frame_Length_Summary.melt(id_vars=['value'], value_name='count', var_name='group')
+
+@pytest.fixture
+def Long_Frame_Name_Freqs(List_Of_Series):
+    return pd.concat(
+        [x.value_counts(dropna=False).reset_index(drop=False)\
+            .rename(columns={x.name:'value'}).assign(group=x.name)
+            for x in List_Of_Series]
     )
 
 @pytest.fixture
-def FD_Frame_Summary():
-    return pd.DataFrame([
-        {'length': 0, 'count': 0, 'group': 'forename'},
-        {'length': 1, 'count': 0, 'group': 'forename'},
-        {'length': 2, 'count': 0, 'group': 'forename'},
-        {'length': 3, 'count': 0, 'group': 'forename'},
-        {'length': 4, 'count': 1, 'group': 'forename'},
-        {'length': 5, 'count': 2, 'group': 'forename'},
-        {'length': 6, 'count': 2, 'group': 'forename'},
-        {'length': 7, 'count': 4, 'group': 'forename'},
-        {'length': 8, 'count': 0, 'group': 'forename'},
-        {'length': 9, 'count': 1, 'group': 'forename'},
-        {'length': 0, 'count': 0, 'group': 'surname'},
-        {'length': 1, 'count': 0, 'group': 'surname'},
-        {'length': 2, 'count': 0, 'group': 'surname'},
-        {'length': 3, 'count': 1, 'group': 'surname'},
-        {'length': 4, 'count': 1, 'group': 'surname'},
-        {'length': 5, 'count': 1, 'group': 'surname'},
-        {'length': 6, 'count': 2, 'group': 'surname'},
-        {'length': 7, 'count': 3, 'group': 'surname'},
-        {'length': 8, 'count': 2, 'group': 'surname'},
-    ], index = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8])
+def Wide_Frame_Name_Freqs(List_Of_Series):
+    return pd.concat(
+        [x.value_counts(dropna=False).rename(x.name)\
+            for x in List_Of_Series], axis=1
+    ).fillna(0).astype(int).sort_index().reset_index(drop=False).rename(columns={'index':'value'})
 
 @pytest.fixture
 def PDR_Conn():
