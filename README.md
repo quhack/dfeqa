@@ -75,8 +75,7 @@ fd([s1,s2],ids=['1980','2010'], long=True, value='month') # suitable for passing
 
 ```
 
-_deprecated_
-- `freqchart` Function to create a barchart comparing frequency distributions of a number of defined columns; optionally pass min_range and max_range (integer, list or tuple) for vlines indicating range
+- `freqchart` _deprecated_ Function to create a barchart comparing frequency distributions of a number of defined columns; optionally pass min_range and max_range (integer, list or tuple) for vlines indicating range
   - `chartdata`* Pandas dataframe in long-format containing the data to be visualised.
   - `value_col` The column defining the values that were counted - these will be set along the x-axis.
   - `freq_col` The column containing the frequency counts.
