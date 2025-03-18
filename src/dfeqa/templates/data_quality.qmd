@@ -102,7 +102,7 @@ Completeness describes the degree to which records are present.
 #| label: fig-completeness
 #| fig-cap: "Completeness of data: comparison with data from previous years"
 
-barchart(value_col=seaice['Date'].dt.year, x_rescale=5)
+barchart(seaice['Date'].dt.year.value_counts(), x_rescale=5)
 
 ```
 
@@ -118,7 +118,7 @@ chartdata = mpg.groupby('origin')['name'].agg([pd.Series.nunique,'size'])
 chartdata['proportion unique'] = chartdata['nunique'] / chartdata['size']
 chartdata.reset_index(drop=False, inplace=True)
 
-barchart(chartdata = chartdata, value_col = 'origin',freq_col = 'proportion unique', groups = 'origin')
+barchart(chartdata, cats = 'origin',values= 'proportion unique', groups = 'origin')
 
 ```
 
@@ -131,7 +131,7 @@ It may be more helpful to see the number of records that _aren't_ unique.
 uniq_count = mpg.groupby(['origin','name'])['name'].agg(n_u = 'size')
 chartdata = uniq_count.groupby('origin')['n_u'].agg(nuniq = lambda x: np.count_nonzero(x > 1)).rename(columns={'nuniq': 'Not unique values'})
 
-barchart(chartdata = chartdata, value_col = 'origin',freq_col = 'Not unique values',groups='origin')
+barchart(chartdata, cats = 'origin',values = 'Not unique values',groups='origin')
 
 ```
 
@@ -151,7 +151,7 @@ We'd probably expect the weight of a vehicle to be the same for a given model of
 car_weight_consistency = mpg.groupby(['name','model_year'])['weight'].nunique().reset_index(drop=False).rename(columns={'weight':'Num. records with same weight'})
 car_weight_consistency['model/year'] = car_weight_consistency['name'] + '/' + car_weight_consistency['model_year'].astype(str)
 
-barchart(chartdata = car_weight_consistency[car_weight_consistency['Num. records with same weight']>1], value_col = 'model/year',freq_col = 'Num. records with same weight',groups='model/year')
+barchart(car_weight_consistency[car_weight_consistency['Num. records with same weight']>1], cats = 'model/year',values = 'Num. records with same weight',groups='model/year')
 
 ```
 
@@ -164,7 +164,7 @@ That's odd... maybe they had different sized engines? We can check that...
 car_weight_consistency = mpg.groupby(['name','model_year','cylinders'])['weight'].nunique().reset_index(drop=False).rename(columns={'weight':'Num. records with same weight'})
 car_weight_consistency['model/year/engine'] = car_weight_consistency['name'] + '/' + car_weight_consistency['model_year'].astype(str) + '/' + car_weight_consistency['cylinders'].astype(str)
 
-barchart(chartdata = car_weight_consistency[car_weight_consistency['Num. records with same weight']>1], value_col = 'model/year/engine',freq_col = 'Num. records with same weight',groups='model/year/engine')
+barchart(car_weight_consistency[car_weight_consistency['Num. records with same weight']>1], cats = 'model/year/engine',values = 'Num. records with same weight',groups='model/year/engine')
 
 ```
 
@@ -247,7 +247,7 @@ penguins = sns.load_dataset('penguins')
 
 split_species = [penguins[penguins['sex'].eq(s)]['species'].rename(s) for s in penguins['sex'].value_counts(dropna=False).index]
 chartdata = fd(split_species, ids=[g.name for g in split_species], long=True).fillna('Unknown')
-barchart(chartdata = chartdata, value_col = 'value', freq_col='count', groups='group')
+barchart(chartdata, cats = 'value', values='count', groups='group')
 ```
 
 One approach is to create a matrix of flags that show whether each value is valid or not, which can then be summarised by column, and could be reported by exception. Functions like `dfeqa.valid_upn()` are helpful here. They don't have to be limited to single column checks either - you could add a totals_check column which checks the sum of multiple columns is the same as some `total` column for example.

@@ -23,7 +23,9 @@ def List_Of_Series():
 
 @pytest.fixture
 def People_As_Frame(List_Of_Series):
-    return pd.concat(List_Of_Series, axis=1)
+    d = pd.concat(List_Of_Series, axis=1)
+    d['fname_len']=d['forename'].str.len()
+    return d
 
 @pytest.fixture
 def Wide_Frame_Length_Summary(List_Of_Series):

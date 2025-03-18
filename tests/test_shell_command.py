@@ -8,7 +8,7 @@ from dfeqa.cmdline import execute
 def test_generate_from_template(tmpdir):
     os.chdir(tmpdir)
     with pytest.raises(SystemExit) as pytest_wrapped_e:
-        execute(['dfeqa', 'createreport', 'data_quality', 'testfile.txt'])
+        execute(['dfeqa', 'create', 'data_quality', 'testfile.txt'])
     assert md5(str(Path(dfeqa.__path__[0], "templates", "data_quality.qmd"))) == \
         md5(Path(tmpdir, "testfile.txt"))
 

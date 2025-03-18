@@ -1,6 +1,6 @@
 ---
-title: -_{{report_title}}_-
-author: ~~your name here~~
+title: Census data quality
+author: (insert name here)
 date: last-modified
 format:
     html:
@@ -17,7 +17,7 @@ execute:
   warning: false
   message: false
 ---
-# {{report_title}}
+# Census data quality
 
 ## Introduction
 
@@ -27,7 +27,7 @@ The dimensions of data quality listed below are explained on more detail in the 
 
 Any additional information about processes that will resolve issues reported in this document can go here at a high-level. Specific actions to address particular issues may be better placed with the analysis reported below.
 
-It is a good idea to reference organsiational goals at this point. Use visualisations to relate the quality of the data being reported on back to those goals. These don't have to be charts, but make use of being able to include pngs, or generate mermaid diagrams. The example below was taken from [mermaid.js.org](https://mermaid.js.org/syntax/gantt.html).
+It is a good idea to reference organsiational goals at this point. Use visualisations to relate the quality of the data being reported on back to those goals. These don't have to be charts, but make use of being able to include pngs, or generate mermaid diagrams. The example below is bespoke, but there are examples of others at [mermaid.js.org](https://mermaid.js.org/intro/).
 
 ```{mermaid}
 flowchart LR
@@ -94,7 +94,7 @@ Completeness describes the degree to which records are present.
 chartdata = pd.DataFrame([
     {'year':'this_year', 'record count':df.shape[0]},{'year':'last_year', 'record count':reference.shape[0]}
     ])
-barchart(chartdata = chartdata, value_col = 'year',freq_col = 'record count', groups = 'year')
+barchart(chartdata = chartdata, cats = 'year',values = 'record count', groups = 'year')
 
 ```
 
@@ -110,7 +110,7 @@ chartdata = pd.DataFrame([
     {'year':'this_year', 'proportion unique':df['UPN'].nunique() / df.shape[0]},
     {'year':'last_year', 'proportion unique':reference['UPN'].nunique() / reference.shape[0]}
     ])
-barchart(chartdata = chartdata, value_col = 'year',freq_col = 'proportion unique', groups = 'year')
+barchart(chartdata, cats = 'year',values = 'proportion unique', groups = 'year')
 
 ```
 
@@ -125,7 +125,7 @@ chartdata = fd([
     reference.groupby('UPN')['UPN'].count()
     ], ids=['this','last'], long=1).rename(columns={'value': 'number of duplications'})
 
-barchart(chartdata = chartdata[chartdata['number of duplications']>1], value_col = 'number of duplications',freq_col = 'count',groups='group')
+barchart(chartdata[chartdata['number of duplications']>1], cats = 'number of duplications',values = 'count',groups='group')
 
 ```
 
@@ -147,7 +147,7 @@ chartdata = fd([
     reference.groupby('PupilMatchingRefAnonymous')['UPN'].nunique()
     ], ids=['this','last'], long=1).rename(columns={'value':'number of UPNs'})
 
-barchart(chartdata = chartdata[chartdata['number of UPNs']>1], value_col = 'number of UPNs',freq_col = 'count',groups='group')
+barchart(chartdata[chartdata['number of UPNs']>1], cats = 'number of UPNs',values = 'count',groups='group')
 
 ```
 
@@ -162,7 +162,7 @@ chartdata = fd([
     reference.groupby('PupilMatchingRefAnonymous')['DOB'].nunique()
     ], ids=['this','last'], long=1).rename(columns={'value':'number of DOBs'})
 
-barchart(chartdata = chartdata[chartdata['number of DOBs']>1], value_col = 'number of DOBs',freq_col = 'count',groups='group')
+barchart(chartdata[chartdata['number of DOBs']>1], cats = 'number of DOBs',values = 'count',groups='group')
 
 
 ```
@@ -222,7 +222,7 @@ In a dataset covering most children in the country of a certain age, we would ex
 #| fig-cap: "Month of birth: comparison with data from the previous year"
 
 dob_data = fd([df['DOB'].dt.month.astype(int), reference['DOB'].dt.month.astype(int)], ids=['this year', 'last year'], long=True)
-barchart(dob_data, value_col='value', freq_col='count', groups='group')
+barchart(dob_data, cats='value', values='count', groups='group')
 
 ```
 

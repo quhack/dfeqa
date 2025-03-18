@@ -1,9 +1,11 @@
 from typing import Union, Tuple
 import warnings
 import pandas as pd
+import matplotlib.pyplot as plt
 from matplotlib.ticker import MaxNLocator
 import seaborn as sns
 import regex
+
 _pat1 = regex.compile(r'\{\{([^\{\}\|]*)\}\}')
 _pat3 = regex.compile(r'{{((?:[^<>={}!]|{{(?1)}})+)'
                         r'(\<\=|\>\=|\!\=|\<|\=|\>)'
@@ -79,30 +81,85 @@ def fd(data: pd.DataFrame|pd.Series|list, cols: list = None, ids: list = None, l
 def freqchart(chartdata:pd.DataFrame, value_col: str, freq_col: str = None, groups:str = None,
         min_range: int|tuple|list = None, max_range: int|tuple|list = None,
         x_rescale: int|list=None):
-        warnings.warn("freqchart() is deprecated and will be removed in a future release. Use barchart() instead.", DeprecationWarning)
-        return barchart(chartdata, value_col, freq_col, groups, min_range, max_range, x_rescale)
-
-def barchart(value_col: str, chartdata:pd.DataFrame = None, freq_col: str = None, groups:str = None,
-        min_range: int|tuple|list = None, max_range: int|tuple|list = None,
-        x_rescale: int|list=None):
     """return barchart comparing frequency dists of a number of defined columns
     optionally pass min_range and max_range (integer, list or tuple) for vlines indicating range"""
+    warnings.warn("freqchart() is deprecated and will be removed in a future release. Use barchart() instead.", DeprecationWarning)
+    return barchart(chartdata, cats=value_col, values=freq_col, groups=groups,\
+        vlines=[(x for x in min_range),(x for x in max_range)],
+        x_rescale=x_rescale)
+
+def barchart(chartdata:pd.DataFrame | pd.Series , cats: str=None, values: str = None, groups:str = None,
+        xlabel: str=None, ylabel: str=None,
+        vlines: int|tuple|list = None,
+        x_rescale: int|list=None):
+    """return barchart comparing frequency dists of a number of defined columns
+    optionally pass vlines (integer, list or tuple) for vlines indicating range"""
 
     y_integers = None
-
-    if chartdata is not None and value_col is not None and freq_col is not None:
-        p = sns.barplot(x=value_col, y=freq_col, hue = groups,
+    p = None
+    plt.close("all")
+# dataframe with cats and values defined
+    if isinstance(chartdata, pd.DataFrame) and cats is not None and values is not None:
+        p = sns.barplot(x=cats, y=values, hue = groups,
             data = chartdata
             )
-        y_integers = True if chartdata[freq_col].apply(isinstance,args = [int]).all() else False
-    elif chartdata is not None and isinstance(value_col,str) and freq_col is None:
-        p = sns.countplot(data = chartdata, x=value_col, hue=groups)
+        y_integers = True if chartdata[values].apply(isinstance,args = [int]).all() else False
+# dataframe with only values defined
+    elif isinstance(chartdata, pd.DataFrame) and values is not None and cats is None and isinstance(values,str):
+        i='i' if values != 'i' else '_i'
+        cols = [groups] if groups else []
+        v = values if isinstance(values,list) else [values]
+        cols = cols + v
+        d = chartdata.copy()[cols].reset_index(drop=False, names=i)
+        p = sns.barplot(data = d, x=i, y=values, hue=groups)
         y_integers = True
-    elif chartdata is None and isinstance(value_col, pd.Series) and freq_col is None:
-        p = sns.countplot(x=value_col)
+# dataframe with only cats defined
+    elif isinstance(chartdata, pd.DataFrame) and values is None and cats is not None and isinstance(cats,str):
+        p = sns.barplot(data=chartdata[cats].value_counts(dropna=False))
         y_integers = True
+# pd.Series
+    elif isinstance(chartdata, pd.Series):
+        p = sns.barplot(chartdata)
+        y_integers = True
+# list of series
+    elif isinstance(chartdata, list) and all(isinstance(x, pd.Series) for x in chartdata):
+        names=None
+        if groups is not None:
+            names = groups
+        elif all(x.name for x in chartdata):
+            names = [x.name for x in chartdata]
+        else:
+            names = ["group" + str(x+1) for x in range(len(chartdata))]
+        cd = []
+        for i,x in enumerate(chartdata):
+            y = x.copy()
+            y.index = y.index.rename(None)
+            y = y.reset_index(drop=False, name="value").assign(group=names[i])
+            cd.append(y)
+        y_integers = True if all(x['value'].apply(isinstance,args = [int]).all() for x in cd) else False
+        p = sns.barplot(pd.concat(cd), x='index', y='value', hue='group')
+
     else:
         raise RuntimeError('unable to generate chart from given parameters')
+
+    # vertical lines
+    x_map = {a.get_text(): i for i,a in enumerate(p.get_xaxis().get_ticklabels())}
+    def drawlines(lines):
+        if lines is None:
+            return
+        elif not isinstance(lines,(list,tuple)):
+            p.axvline(x=x, color=sns.color_palette()[0])
+        elif isinstance(lines,(tuple,list)) and all(isinstance(x,(list,tuple)) for x in lines):
+            for line in lines:
+                drawlines(line)
+        else:
+            for i,x in enumerate(lines):
+                try:
+                    p.axvline(x=x_map[str(x)], color=sns.color_palette()[i])
+                except KeyError:
+                    print("value for vline is not on x axis")
+    drawlines(vlines)
+
     if x_rescale:
         assert isinstance(x_rescale, (int, list))
         ticks = p.get_xticks()
@@ -111,21 +168,11 @@ def barchart(value_col: str, chartdata:pd.DataFrame = None, freq_col: str = None
         elif isinstance(x_rescale, list):
             p.set_xticks([ticks[x] for x in x_rescale])
  
-    # vertical lines showing range
-    if isinstance(min_range,(list,tuple)):
-        for i,x in enumerate(min_range):
-            p.axvline(x=x, color=sns.color_palette()[i])
-    elif isinstance(min_range,int):
-        p.axvline(x=min_range, color=sns.color_palette()[0])
-
-    if isinstance(max_range,(list,tuple)):
-        for i,x in enumerate(max_range):
-            p.axvline(x=x, color=sns.color_palette()[i])
-    elif isinstance(max_range,int):
-        p.axvline(x=max_range, color=sns.color_palette()[0])
-
     if y_integers:
         p.yaxis.set_major_locator(MaxNLocator(integer=True))
+    
+    p.set_xlabel(xlabel)
+    p.set_ylabel(ylabel)
 
     return p
 
