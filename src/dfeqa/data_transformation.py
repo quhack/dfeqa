@@ -1,6 +1,10 @@
 from datetime import datetime
 
-def year_group(dob: str, year: int, format: str = '%d%m%Y', upper_year: int = 8):
+def year_group(dob: str, year: int | str, format: str = '%d%m%Y', upper_year: int | str = 8):
+    if isinstance(year, str):
+        year = int(year)
+    if isinstance(upper_year, str):
+        upper_year = int(upper_year)
     assert year > 2000 and year <= datetime.now().year
     dob_asdate = datetime.strptime(dob,format)
     dob_month = dob_asdate.month
