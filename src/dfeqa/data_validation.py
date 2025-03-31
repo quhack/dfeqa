@@ -1,4 +1,4 @@
-valid_name_regex = r"^[\d\-.,\'’\"\+\*\(\)\[\]\ `_\/\\A-Za-zÀ-ÖØ-öø-ÿĀ-ſ]*[A-Za-zÀ-ÖØ-öø-ÿĀ-ſ]+[\d\-.,\'’\"\+\*\(\)\[\]\ `_\/\\A-Za-zÀ-ÖØ-öø-ÿĀ-ſ]*$"
+valid_name_regex = r"^[\d\-.,\'’\"\+\*\(\)\[\]\ `_\/\\A-Za-zÀ-ÖØ-öø-ÿĀ-ſƀ-ȳɐ-ʭ]*[A-Za-zÀ-ÖØ-öø-ÿĀ-ſƀ-ȳɐ-ʭ]+[\d\-.,\'’\"\+\*\(\)\[\]\ `_\/\\A-Za-zÀ-ÖØ-öø-ÿĀ-ſƀ-ȳɐ-ʭ]*$"
 """string is made up of alphanum and at least one alpha"""
 
 def valid_upn(UPNstring: str):
