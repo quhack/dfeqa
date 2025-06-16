@@ -1,0 +1,9 @@
+  quarto
+  pyyaml
+  nbformat
+  nbclient
+  ipykernel
+  pytest-cov
+  hatch
+  ruff
+  

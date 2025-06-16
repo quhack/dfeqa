@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-
 import argparse
 from pathlib import Path
-from shutil import copy
-from typing import TYPE_CHECKING
 
 import dfeqa
 from dfeqa import parse_text
@@ -49,13 +46,16 @@ class Command(DfeqaCommand):
             assert len(opts.filename)>0
             output_path_with_file = str(Path(Path.cwd(), opts.filename))
             output_reportname = opts.filename.rpartition('.')[0]
-            if output_reportname=="": output_reportname = opts.filename
+            if output_reportname=="":
+                output_reportname = opts.filename
 
         d = {'report_title': template}
-        if (opts.custom): d['report_title'] = output_reportname
+        if (opts.custom):
+            d['report_title'] = output_reportname
         with open(self.templates_dict[template], 'r') as reader:
             t = reader.read()
-            if (opts.custom): t = parse_text(t, d)
+            if (opts.custom):
+                t = parse_text(t, d)
         with open(output_path_with_file, 'w') as writer:
             writer.write(t)
         print(f"template '{template}' ready.")

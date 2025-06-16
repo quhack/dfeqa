@@ -144,4 +144,4 @@ share/
 .pypirc
 pyvenv.cfg
 .vscode/
-*.env
+.env*

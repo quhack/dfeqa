@@ -1,9 +1,12 @@
-import os
-import pytest
 import hashlib
+import os
 from pathlib import Path
+
+import pytest
+
 import dfeqa
 from dfeqa.cmdline import execute
+
 
 def test_generate_from_template(tmpdir):
     os.chdir(tmpdir)

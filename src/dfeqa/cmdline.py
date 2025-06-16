@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 import argparse
-import sys
 import inspect
+import sys
 from importlib import import_module
-from types import ModuleType
 from pkgutil import iter_modules
+from types import ModuleType
+from typing import TYPE_CHECKING
 
-import dfeqa
 from dfeqa.commands import DfeqaCommand
 from dfeqa.exceptions import UsageError
-
-from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from collections.abc import Callable, Iterable

@@ -19,7 +19,6 @@ classifiers = [
 dependencies = [
   "pandas",
   "sqlalchemy",
-  "pyodbc",
   "seaborn",
   "regex",
   "jinja2",
@@ -34,18 +33,19 @@ user = [
   "nbclient",
   "ipykernel",
 ]
-dev = [
-  "quarto",
-  "pyyaml",
-  "nbformat",
-  "nbclient",
-  "ipykernel",
-  "pytest-cov ~=3.0.0",
-  "hatch",
+databricks = [
+  "dfeqa[user]",
+  "databricks-sql-connector",
+  "databricks-sqlalchemy"
+]
+odbc = [
+  "dfeqa[user]",
+  "pyodbc"
 ]
 
 [project.urls]
-Homepage = "https://github.com/quhack/dfeqa"
+Documentation = "https://github.com/quhack/dfeqa/wiki"
+Repository = "https://github.com/quhack/dfeqa"
 Issues = "https://github.com/quhack/dfeqa/issues"
 
 [project.scripts]

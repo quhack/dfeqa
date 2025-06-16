@@ -1,4 +1,5 @@
-from dfeqa import year_group, parse_text
+from dfeqa import parse_text, year_group
+
 
 def test_older_year_group():
     assert year_group("23092012",2024) == 'y6'
