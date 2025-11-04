@@ -444,5 +444,17 @@ def test_minmax_mixture_of_types(List_of_Dates_as_Strings):
         'n_not_null': 718
     }
 
+def test_minmax_strings_factors(User_Table, DB_Connection):
+    from dfeqa import get_table
+    this_user_db = get_table('users', schema = None, conn=DB_Connection)
+    assert this_user_db['name'].minmax()['elements'] == ['Alice','Vincent','David']
 
 
+# def test_dummy(User_Table, DB_Connection):
+#     from sqlalchemy.orm import Session
+#     session = Session(bind=DB_Connection)
+
+#     users = session.query(User_Table).all()
+#     session.close()
+
+#     assert [u.name for u in users] == ['Alice']

@@ -200,9 +200,10 @@ class Series(pd.Series):
         """summary of elements of a continuous or semi-continuous variable such as number or time"""
         head = self[~self.isna()][:Constants.UNIQUE_RANGE.value]
         uniq_vals = head.unique()
+        uniq_ctr = self.nunique()
         return ["({0:d} unique values)".format(self[~self.isna()].unique().size)] \
             + (uniq_vals[:Constants.FACTOR_THRESH.value].tolist() \
-            if uniq_vals.size <= Constants.FACTOR_THRESH.value else \
+            if uniq_ctr <= Constants.FACTOR_THRESH.value else \
             uniq_vals[:Constants.FACTOR_THRESH.value].tolist() + ['...'])
 
     def minmax(self, stype = None, *args, **kwargs):

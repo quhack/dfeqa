@@ -7,8 +7,28 @@ import pandas as pd
 import regex
 import seaborn as sns
 from matplotlib.ticker import MaxNLocator
+from sqlalchemy import (  #, join, desc
+    # Integer,
+    MetaData,
+    # String,
+    Table,
+    # and_,
+    # case,
+    # cast,
+    create_engine,  #, inspect
+    # except_,
+    # func,
+    # intersect,
+    # literal,
+    # or_,
+    # select,
+    # try_cast,
+    union,
+)
+from sqlalchemy.engine import Connectable
 
 from .datastructures import DataFrame
+from .helpers.sql_summary import _sql_selects, _validate_sql_spec
 
 _pat1 = regex.compile(r'\{\{([^\{\}\|]*)\}\}')
 _pat3 = regex.compile(r'{{((?:[^<>={}!]|{{(?1)}})+)'
@@ -19,36 +39,21 @@ _pat3 = regex.compile(r'{{((?:[^<>={}!]|{{(?1)}})+)'
 
 class Constants(Enum):
     SERIES_LABEL = "series"
+    SOURCE_LABEL = "source"
+    TABLE_LABEL = "table"
+    COLUMN_LABEL = "column"
+    VALUE_LABEL = "value"
+    FREQUENCY_LABEL = "f"
 
-
-class summary():
-    """General purpose class to provide convenience functions to summarise dataframes,
-    series, lists of series or dicts of series"""
-    def __init__(self, data: pd.DataFrame|pd.Series|list|tuple|dict, names = None, *args, **kwargs):
+class BaseSummary():
+    def __init__(self, data, names, **kwargs):
         self._data = data
-        self._summaries = self._calc_freqs(*args, **kwargs)
         self._names = names
+        self._raw_ids, self._summaries = self._calc_freqs(**kwargs)
 
-    def _calc_freqs(self, *args, **kwargs):
-        _summaries = []
-        if isinstance(self._data, pd.Series):
-            k = self._data.name or Constants.SERIES_LABEL.value
-            s = self._data.rename(None).value_counts(*args, **kwargs).rename(k).fillna(0).astype(int)
-            _summaries = [(k, s)]
-        elif isinstance(self._data, (list,tuple,dict)):
-            if isinstance(self._data, (list,tuple)):
-                _summaries = [(x.name or Constants.SERIES_LABEL.value + "_" + str(i),
-                    x.rename(None).value_counts(*args, **kwargs).fillna(0).astype(int)
-                    .rename(x.name or Constants.SERIES_LABEL.value + "_" + str(i)))
-                    for i,x in enumerate(self._data)]
-            else:
-                _summaries = [(k, v.rename(None)
-                    .value_counts(*args, **kwargs).rename(k).astype(int))
-                    for k,v in self._data.items()]
-        else:
-            _summaries = [(lbl, x.rename(None).value_counts(*args, **kwargs).rename(lbl))
-                for lbl,x in self._data.items()]
-        return _summaries
+    def _calc_freqs(self):
+        """returns two values - list of IDs for each summary and list of summaries as series"""
+        pass
 
     def set_names(self, names):
         self._names = names
@@ -59,8 +64,28 @@ class summary():
         sumgroups = select or [k for (k,x) in self._summaries]
         d = pd.DataFrame(self._summaries[0][1]) if len(self._summaries)==1 else \
             pd.concat([x for (k,x) in self._summaries if k in sumgroups], axis=1)
-        d = d.fillna(0).astype(int).reset_index(drop=False)
-        d = DataFrame(_wide_sort(d, offset=1)) if sort_counts else\
+        d = d.fillna(0).astype(int).reset_index(drop=False) # reset_index adds name index
+
+        # TODO this is where 'index' column appears IF no index name
+        # add something here to rename the index column if it created one.
+        # if multi, names for each component used in the dataframe
+        # the concat however will remove the names, so add them after?
+        # yes! pd.concat([a,b]).index.set_names([a.index.names])
+
+        # but what does this mean for series with indexes in a different order?
+        # might have to make the assumption that tuples contain colnames in same order
+        # and warn if they aren't?
+
+        # anyway, once the index is set after concat,
+        # the sort_values needs to reference the colunname not 'index'
+        # WHY NOT set the index name where there isn't one?
+        # would that solve the issue?
+
+        # need to add test case with series with multi-index; was it selects?
+
+        # what if we wanted to do a fd on every column in a table?
+
+        d = DataFrame(_wide_sort(d)) if sort_counts else\
             DataFrame(d.sort_values('index')).reset_index(drop=True)
         return d.set_axis(['value'] + columns, axis="columns")
 
@@ -78,7 +103,88 @@ class summary():
         return [{'groupname':lbl, 'value': value, 'count':int(x[value]), 'total': int(x.sum())}
             for (lbl,x) in self._summaries if value in x.index]
 
-def _wide_sort(df: pd.DataFrame, offset:int):
+class PandasSummary(BaseSummary):
+    def __init__(self, data: pd.DataFrame|pd.Series|list|tuple|dict, names = None, **kwargs):
+        super().__init__(data, **kwargs)
+
+    def _calc_freqs(self, *args, **kwargs):
+        _summaries = []
+        if isinstance(self._data, pd.Series):
+            k = self._data.name or Constants.SERIES_LABEL.value
+            s = self._data.rename(None).value_counts(**kwargs).rename(k).fillna(0).astype(int)
+            _summaries = [(k, s)]
+        elif isinstance(self._data, (list,tuple,dict)):
+            if isinstance(self._data, (list,tuple)):
+                _summaries = [(x.name or Constants.SERIES_LABEL.value + "_" + str(i),
+                    x.rename(None).value_counts(*args, **kwargs).fillna(0).astype(int)
+                    .rename(x.name or Constants.SERIES_LABEL.value + "_" + str(i)))
+                    for i,x in enumerate(self._data)]
+            else:
+                _summaries = [(k, v.rename(None)
+                    .value_counts(**kwargs).rename(k).astype(int))
+                    for k,v in self._data.items()]
+        else:
+            _summaries = [(lbl, x.rename(None).value_counts(**kwargs).rename(lbl))
+                for lbl,x in self._data.items()]
+        return list(zip(*_summaries, strict=True))
+
+class SqlSummary(BaseSummary):
+    def __init__(self, data: dict, conn, names = None, **kwargs):
+        assert _validate_sql_spec(data), 'query specification is not valid'
+        self._conn = conn
+        self._stmt = None
+        self._columnname_lookup = None
+        super().__init__(data, names, **kwargs)
+
+    def _calc_freqs(self, *args, **kwargs):
+        _summaries = []
+        metadata_obj = MetaData()
+        eng = create_engine(self._conn) if not isinstance(self._conn, Connectable) else self._conn
+# TODO NEXT - use the columnname_lookup in the _sql_selects to set the Series name and index labels
+        lookup_tables = {t: Table(t.split('.')[1], metadata_obj, autoload_with=eng, schema=t.split('.')[0]) \
+                        if t.count('.')==1
+                        else Table(t, metadata_obj, autoload_with=eng) for t in self._data}
+        list_of_selects = _sql_selects(
+            sql_spec=self._data,
+            tables_dict=lookup_tables)
+        self._stmt = union(*[i.sql for i in list_of_selects])
+# TODO tidy this lot up
+        # print(self._stmt(compile_kwargs={"literal_binds": True}))
+        # if isinstance(eng, Engine):# TODO call execute on the engine directly
+        #     with eng.connect() as cnx:
+        #         _sums = pd.DataFrame(cnx.execute(self._stmt))
+        # elif isinstance(eng, Connection):
+        #         _sums = pd.DataFrame(eng.execute(self._stmt))
+        _sums = pd.DataFrame(eng.execute(self._stmt))
+#TODO trace back eng argument - it could be connection or engine now
+# change to connectable or something similar - or maybe pass an object with a getter?
+
+        # - check if list_of_selects looks different if there are tuples
+        # - split the df based on list entries
+        # - reformat the tuples consistently no matter which level they are on
+
+        # now take the dataframe and split it into separate series if combinations
+        #  or not if is a list
+        _summaries = [(
+            x,_sums[_sums['table'].eq(x.tablename) &
+            _sums['column'].eq(x.columns)]\
+                .set_index(Constants.VALUE_LABEL.value)[Constants.FREQUENCY_LABEL.value]\
+                .rename(x.alias if x.alias is not None else x.columns)
+            ) for x in list_of_selects]
+
+        return list(zip(*_summaries, strict=True))
+
+def summary(data: pd.DataFrame|pd.Series|list|tuple|dict, names = None, conn=None, **kwargs):
+    """General purpose class to provide convenience functions to summarise dataframes,
+    series, lists of series or dicts of series
+    `names` to rename the columns on output
+    `data` as a dataframe, series or collection of series, or a sql spec"""
+    if conn is not None:
+        return SqlSummary(data, conn, names, **kwargs)
+    else:
+        return PandasSummary(data, names, **kwargs)
+
+def _wide_sort(df: pd.DataFrame):
     dummynumber = 0
     dummyname = "__%d" % dummynumber
     columns = df.columns.to_list()

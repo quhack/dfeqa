@@ -25,7 +25,12 @@ def test_parsed_text():
 
 def test_recursive_conditional_text():
     my_data = {'my_val': "to catch one",'boggle': "good", 'my_val2':"from a brutish bygone era"}
-    assert parse_text("send a maniac {{'boggle = good'|{{my_val}}|{{my_val2}}}}",my_data) == "send a maniac from a brutish bygone era"
+    assert parse_text("send a maniac {{'boggle = good'|{{my_val}}|{{my_val2}}}}",my_data) == \
+        "send a maniac from a brutish bygone era"
+
+def test_null_parsed_text():
+    my_data = {'value': -1}
+    assert parse_text("{{value=1|value is equal to 1|}}",my_data) == ""
 
 def test_academic_year_as_string():
     assert year_group("23092012","2024") == 'y6'

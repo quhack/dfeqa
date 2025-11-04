@@ -37,7 +37,7 @@ def get_table(tablename, conn=None, schema = "dbo"):
     """
     if conn is None:
         conn = get_default_conn()
-    else:
+    elif isinstance(conn, str):
         load_dotenv()
         conn = os.environ[conn] if conn in os.environ else conn
     return DataFrame(pd.read_sql_table(tablename, schema = schema, con = conn))

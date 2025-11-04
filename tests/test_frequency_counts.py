@@ -1,5 +1,6 @@
 import pandas as pd
 
+# import pytest
 from dfeqa import fd, summary
 from dfeqa.datastructures import DataFrame
 
@@ -234,3 +235,101 @@ def test_object_wide_default_sort(List_Of_Series, Wide_Frame_Length_Summary):
     pd.testing.assert_frame_equal(summary([x.str.len() for x in List_Of_Series], dropna=False)\
         .wide_fd(),
         DataFrame(benchmark))
+
+def test_db_fd_multiple_columns(DB_Connection, User_Table):
+    assert summary(data={'users':['forename','surname']}, conn = DB_Connection) == []
+
+def test_db_fd_multilevel(DB_Connection, User_Table):
+    assert summary(data={'users':('forename','surname')}, conn = DB_Connection) == []
+
+# TODO add test cases for columns from different tables
+def test_db_fd_multitable(DB_Connection, User_Table, Alias_Table):
+    s = summary(data={'users':['forename','surname']}, conn = DB_Connection)
+    assert s._summaries == []
+
+# TODO remove the column name from the index of the summaries
+
+# TODO add test cases for tuples of columns
+
+
+
+# _summaries should be a list of tuples with a series in each tuple
+
+# _summaries is a list of tuples which is simple for dataframe-based data (no combos)
+
+# one column in one table - can't find index
+# two columns as list can't find second column
+# two columns as tuple - can't find index
+
+# one column one table - as expected
+
+# [('users:[forename]', forename
+# Alfredo      1
+# Associate    1
+# Edgar        1
+# George       1
+# John         1
+# Lenina       1
+# Raymond      1
+# Simon        1
+# William      1
+# Zachary      1
+# Name: users:[forename], dtype: int64)]
+
+
+
+# columns as list:
+# - errors saying 'surname' is not in columns
+
+# [SqlInstance(
+#   tablename='users', columns=['forename'],
+#   sql=<sqlalchemy.sql.selectable.Select object at 0x0000015EEC9AC4F0>),
+# SqlInstance(
+#   tablename='users', columns=['surname'],
+#   sql=<sqlalchemy.sql.selectable.Select object at 0x0000015EEC9AC490>)]
+
+
+# SELECT 'users:[forename]' AS source, 'forename' AS col, users.forename, count(*) AS f
+# FROM users GROUP BY users.forename
+# SELECT 'users:[surname]' AS source, 'surname' AS col, users.surname, count(*) AS f
+# FROM users GROUP BY users.surname
+
+# it should be separate tuples; single series in each
+
+
+# columns as tuple: - this is what is should be
+# [('users:[forename/surname]', forename   surname
+# Alfredo    Garcia      1
+# Associate  Bob         1
+# Edgar      Friendly    1
+# George     Earle       1
+# John       Spartan     1
+# Lenina     Huxley      1
+# Raymond    Cocteau     1
+# Simon      Phoenix     1
+# William    Smithers    1
+# Zachary    Lamb        1
+# Name: users:[forename/surname], dtype: int64)]
+
+
+# [SqlInstance(
+#     tablename='users',
+#     columns=('forename', 'surname'),
+#     sql=<sqlalchemy.sql.selectable.Select object at 0x00000211215433A0>)]
+
+# SELECT :param_1 AS source, users.forename, users.surname, count(*) AS f
+# FROM users GROUP BY users.forename, users.surname
+
+# this could be as we want it
+
+
+# the issue is that single columns or combinations are:
+# (columnname) / f
+# values / number
+
+# if it's a list of columns, then it'set
+# (columnname) / (value) / f
+# but (value) is named as a column instead - then renaming it fails
+
+
+# ( a series noting the forename/surname pairing - the summary process works if not the output)
