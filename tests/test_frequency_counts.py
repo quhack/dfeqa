@@ -244,7 +244,7 @@ def test_db_fd_multilevel(DB_Connection, User_Table):
 
 # TODO add test cases for columns from different tables
 def test_db_fd_multitable(DB_Connection, User_Table, Alias_Table):
-    s = summary(data={'users':['forename','surname']}, conn = DB_Connection)
+    s = summary(data={'users':['forename','surname'], 'alias':['forename','surname']}, conn = DB_Connection)
     assert s._summaries == []
 
 # TODO remove the column name from the index of the summaries

@@ -105,7 +105,7 @@ class BaseSummary():
 
 class PandasSummary(BaseSummary):
     def __init__(self, data: pd.DataFrame|pd.Series|list|tuple|dict, names = None, **kwargs):
-        super().__init__(data, **kwargs)
+        super().__init__(data, names, **kwargs)
 
     def _calc_freqs(self, *args, **kwargs):
         _summaries = []
@@ -169,7 +169,8 @@ class SqlSummary(BaseSummary):
             x,_sums[_sums['table'].eq(x.tablename) &
             _sums['column'].eq(x.columns)]\
                 .set_index(Constants.VALUE_LABEL.value)[Constants.FREQUENCY_LABEL.value]\
-                .rename(x.alias if x.alias is not None else x.columns)
+                .rename(x.alias if x.alias is not None else x.columns)\
+                .rename_axis(None,axis=0)
             ) for x in list_of_selects]
 
         return list(zip(*_summaries, strict=True))
