@@ -24,11 +24,13 @@ class SqlInstance:
     tablename: str
     columns: str | tuple
     sql: Optional[select] = None
-    alias: str | tuple = None
+    alias: str | list = None
+    output_columns: str | list = None
+    # pandas_query: str = None
     def __str__(self):
-        return (self.tablename + ":[" + self.columns + "]") \
+        return (self.tablename + ":" + self.columns) \
             if isinstance(self.columns, str) else \
-            (self.tablename + ":[" + "/".join(self.columns) + "]")
+            (self.tablename + ":(" + ",".join(self.columns) + ")")
     def list_column_names(self):
         if isinstance(self.columns, str):
             return [{'t':self.tablename, 'c':self.columns}]
@@ -58,23 +60,18 @@ def _tablecolumn_from_sqlspec(sqlspec, t=None):
 
 def make_columns_unique(cols: list):
     """take list of dicts with table and column names - return a list of unique column names"""
-    col_ctr = Counter([x['c'] for x in cols])
-    col_ctr = {k:v for k,v in col_ctr.items() if v > 1}
-    temp_ctr = {}
-    table_col_lookup = {} # (t,v): newcolname
+    uniq_tables = list(set([x['t'] for x in cols])) # list so order is persistent
+    uniq_tc = set([(x['t'],x['c']) for x in cols])
+    utables, ucolumns = zip(*uniq_tc, strict=True)
+    n_col_instances = Counter(ucolumns) # number of tables each column is defined in
     outlist = []
     for x in cols:
         c = x['c']
         t = x['t']
-        if c not in col_ctr:
+        if n_col_instances[c] == 1:
             outlist.append(c)
-        elif c in col_ctr and (t,c) not in table_col_lookup:
-            temp_ctr[c] = temp_ctr.get(c,0) + 1
-            newname = c + '_' + _number_to_lettercombo(temp_ctr[c])
-            table_col_lookup[(t,c)] = newname
-            outlist.append(newname)
         else:
-            outlist.append(table_col_lookup[(t,c)])
+            outlist.append(c + '_' + _number_to_lettercombo(uniq_tables.index(t)+1))
     return outlist
 
 
@@ -88,19 +85,6 @@ def _number_to_lettercombo(num: int):
     if residual > 0:
         outval = outval + _number_to_lettercombo(residual)
     return outval + string.ascii_uppercase[(num % 26)-1]
-
-# was used to list the sql_spec instances but no longer used
-# def _sql_colnames(table,column):
-#     """generator to return dicts containing the tables and columnnames from a single entry in sql spec"""
-#     if isinstance(column, list):
-#         for _c in column:
-#             yield from _sql_colnames(table, _c)
-#     else:
-#         yield {'table': table, 'columns': column}
-
-
-
-
 
 
 
@@ -118,24 +102,37 @@ def _number_to_lettercombo(num: int):
 
 def _sql_create_instance(table, column, sql_tables, column_aliases):
     """generator to return dict(s) containing the select element(s) with table and group_by"""
+    print(column_aliases)
+    print(table)
+    print(column)
     # add additional columns to the query if add_column_ids is true
     if isinstance(column, list):
         for _c in column:
             yield from _sql_create_instance(table, _c, sql_tables, column_aliases)
     elif isinstance(column, tuple): # this is the case where combo columns specd
         s_instance = SqlInstance(tablename = table, columns=column)
-        sql_select = [sql_tables[table].c[_c] for _c in column]
-        sql_select = [literal(_c).label(Constants.COLUMN_LABEL.value + '_' + str(_i))
-                        for _i, _c in enumerate(column)] + sql_select
+        # sql_select = [sql_tables[table].c[_c] for _c in column]
+        sql_select = [sql_tables[table].c[_c].label(Constants.COLUMN_LABEL.value + '_' + str(_i))\
+            for _i, _c in enumerate(column)]
+        # sql_select = [literal(_c).label(Constants.COLUMN_LABEL.value + '_' + str(_i))
+        #                 for _i, _c in enumerate(column)] + sql_select
         s_instance.sql = _build_select(s_instance, sql_select).group_by(*column)
-        s_instance.alias = {x:column_aliases[x] for x in column if x in column_aliases}
+        # s_instance.alias = list(column_aliases.values())#{x:column_aliases[x] for x in column if x in column_aliases}
+        s_instance.alias = [column_aliases[(table, x)] for x in column]
+        s_instance.output_columns = [Constants.COLUMN_LABEL.value + '_' + str(_i)
+                        for _i in range(len(column))]
         yield s_instance
     else:
         s_instance = SqlInstance(tablename = table, columns=column)
-        sql_select = [sql_tables[table].c[column].label(Constants.VALUE_LABEL.value)]
-        sql_select = [literal(column).label(Constants.COLUMN_LABEL.value)] + sql_select
+        sql_select = [#literal(column).label(Constants.COLUMN_LABEL.value + '_0'),
+            # sql_tables[table].c[column].label(Constants.VALUE_LABEL.value)
+            sql_tables[table].c[column].label(Constants.COLUMN_LABEL.value + '_0')
+            ]
         s_instance.sql = _build_select(s_instance, sql_select).group_by(column)
-        s_instance.alias = column_aliases.get((table, column),None)
+        # s_instance.alias = list(column_aliases.values())[0] #column_aliases.get((table, column),None)
+        s_instance.alias = column_aliases[(table, column)]
+        s_instance.output_columns = Constants.COLUMN_LABEL.value + '_0'
+
         yield s_instance
 
 
@@ -146,7 +143,7 @@ def _sql_selects(sql_spec, tables_dict):
         'tablenames should have max 2 levels (schema and tablename)'
     oldcols = _tablecolumn_from_sqlspec(sql_spec)
     newnames = make_columns_unique(oldcols)
-    column_aliases = {(o['t'],o['c']): newname for o,newname in zip(oldcols,newnames, strict=True)}
+    column_aliases = {(o['t'],o['c']): newname for o,newname in zip(oldcols, newnames, strict=True)}
     return [sql for t,c in sql_spec.items()
                 for sql in _sql_create_instance(t,c, tables_dict, column_aliases)]
 

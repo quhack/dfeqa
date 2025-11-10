@@ -103,6 +103,7 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     forename: Mapped[str] = mapped_column(String(30), nullable=False)
     surname: Mapped[str] = mapped_column(String(30), nullable=False)
+    sex: Mapped[str] = mapped_column(String(30), nullable=False)
     # age: Mapped[int] = mapped_column(Integer, nullable=False)
 
 class Alias(Base):
@@ -110,6 +111,7 @@ class Alias(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     forename: Mapped[str] = mapped_column(String(30), nullable=False)
     surname: Mapped[str] = mapped_column(String(30), nullable=False)
+    sex: Mapped[str] = mapped_column(String(30), nullable=False)
 
 
 @pytest.fixture
@@ -121,9 +123,11 @@ def User_Table(DB_Connection):
             'George', 'Associate', 'Edgar', 'Zachary', 'William']
     surnames = ['Spartan', 'Phoenix', 'Huxley', 'Cocteau', 'Garcia',
             'Earle', 'Bob', 'Friendly', 'Lamb', 'Smithers']
+    sex = ['Male', 'Male', 'Female', 'Male', 'Male',
+            'Male', 'Male', 'Male', 'Male', 'Male']
 
-    session.add_all([User(forename=f, surname=s)
-        for (f,s) in zip(firstnames,surnames, strict=True)])
+    session.add_all([User(forename=f, surname=s, sex=sx)
+        for (f,s,sx) in zip(firstnames,surnames, sex, strict=True)])
     session.commit()
 
 
@@ -141,8 +145,10 @@ def Alias_Table(DB_Connection):
             'Bob', 'Glenn', 'Denis', 'Grand', 'Mark']
     asurnames = ['Stallone', 'Snipes', 'Bullock', 'Hawthorne', 'Bratt',
             'Gunton', 'Shadix', 'Leary', 'Bush', 'Colson']
-    session.add_all([Alias(forename=f, surname=s)
-        for (f,s) in zip(afirstnames,asurnames, strict=True)])
+    sex = ['Male', 'Male', 'Female', 'Male', 'Male',
+            'Male', 'Male', 'Male', 'Male', 'Male']
+    session.add_all([Alias(forename=f, surname=s, sex=sx)
+        for (f,s,sx) in zip(afirstnames,asurnames,sex, strict=True)])
     session.commit()
 
     yield (Alias) # Yield control to the tests
