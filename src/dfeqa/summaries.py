@@ -139,54 +139,26 @@ class SqlSummary(BaseSummary):
     def _calc_freqs(self, *args, **kwargs):
         _summaries = []
         metadata_obj = MetaData()
-        eng = create_engine(self._conn) if not isinstance(self._conn, Connectable) else self._conn
-        tables_lookup = {t: Table(t.split('.')[1], metadata_obj, autoload_with=eng, schema=t.split('.')[0]) \
+        cnx = create_engine(self._conn) if not isinstance(self._conn, Connectable) else self._conn
+        tables_lookup = {t: Table(t.split('.')[1], metadata_obj, autoload_with=cnx, schema=t.split('.')[0]) \
                         if t.count('.')==1
-                        else Table(t, metadata_obj, autoload_with=eng) for t in self._data}
+                        else Table(t, metadata_obj, autoload_with=cnx) for t in self._data}
         list_of_selects = _sql_selects(
             sql_spec=self._data,
             tables_dict=tables_lookup)
         self._stmt = union(*[i.sql for i in list_of_selects])
         # print(self._stmt(compile_kwargs={"literal_binds": True}))
-        _sums = pd.DataFrame(eng.execute(self._stmt))
-#TODO trace back eng argument - it could be connection or engine now
-# change to connectable or something similar - or maybe pass an object with a getter?
-
-        # - check if list_of_selects looks different if there are tuples
-        # - split the df based on list entries
-        # - reformat the tuples consistently no matter which level they are on
-
-        # print(_sums)
-        # print(list_of_selects)
-        # for x in list_of_selects:
-        #     print(_sums[_sums[Constants.SOURCE_LABEL.value].eq(str(x))])
-        #     print(_sums[_sums[Constants.SOURCE_LABEL.value].eq(str(x))].set_index(
-        #             Constants.COLUMN_LABEL.value + '_0' if isinstance(x.columns, str) else
-        #             [Constants.COLUMN_LABEL.value + '_' + str(_i) for _i in range(len(x.columns))]
-        #             ))
-        #     print(Constants.FREQUENCY_LABEL.value)
-        #     print(_sums[_sums[Constants.SOURCE_LABEL.value].eq(str(x))].set_index(
-        #             Constants.COLUMN_LABEL.value + '_0' if isinstance(x.columns, str) else
-        #             [Constants.COLUMN_LABEL.value + '_' + str(_i) for _i in range(len(x.columns))]
-        #             )[Constants.FREQUENCY_LABEL.value])
-
+        _sums = pd.DataFrame(cnx.execute(self._stmt))
         _summaries = [(
-            # x,_sums[_sums['table'].eq(x.tablename) &
-            # _sums['column'].eq(x.columns)]\
             x, _sums[_sums[Constants.SOURCE_LABEL.value].eq(str(x))]\
-                # .set_index(Constants.VALUE_LABEL.value)[Constants.FREQUENCY_LABEL.value]\
-                # .set_index(x.columns if isinstance(x.columns, str) else list(x.columns))\
                 .set_index(
                     Constants.COLUMN_LABEL.value + '_0' if isinstance(x.columns, str) else
                     [Constants.COLUMN_LABEL.value + '_' + str(_i) for _i in range(len(x.columns))]
                     )\
                 [Constants.FREQUENCY_LABEL.value]\
-                # .rename(x.alias if x.alias is not None else x.columns)\
                 .rename(str(x))\
                 .rename_axis(None if isinstance(x.columns, str) else x.columns if x.alias is None else x.alias,axis=0)
             ) for x in list_of_selects]
-
-        print(list(zip(*_summaries, strict=True)))
 
         return list(zip(*_summaries, strict=True))
 

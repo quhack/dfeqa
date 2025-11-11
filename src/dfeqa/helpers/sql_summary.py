@@ -87,49 +87,25 @@ def _number_to_lettercombo(num: int):
     return outval + string.ascii_uppercase[(num % 26)-1]
 
 
-
-# TODO
-# we've got a table of aliases, but rather than handling that separately
-# we want to integrate that into the creation of the spec objects if possible
-# then amend sql_build to build a query for those instances including the alias as one step
-#######
-
-
-
-
-
-
-
 def _sql_create_instance(table, column, sql_tables, column_aliases):
     """generator to return dict(s) containing the select element(s) with table and group_by"""
-    print(column_aliases)
-    print(table)
-    print(column)
     # add additional columns to the query if add_column_ids is true
     if isinstance(column, list):
         for _c in column:
             yield from _sql_create_instance(table, _c, sql_tables, column_aliases)
-    elif isinstance(column, tuple): # this is the case where combo columns specd
+    elif isinstance(column, tuple):
         s_instance = SqlInstance(tablename = table, columns=column)
-        # sql_select = [sql_tables[table].c[_c] for _c in column]
         sql_select = [sql_tables[table].c[_c].label(Constants.COLUMN_LABEL.value + '_' + str(_i))\
             for _i, _c in enumerate(column)]
-        # sql_select = [literal(_c).label(Constants.COLUMN_LABEL.value + '_' + str(_i))
-        #                 for _i, _c in enumerate(column)] + sql_select
         s_instance.sql = _build_select(s_instance, sql_select).group_by(*column)
-        # s_instance.alias = list(column_aliases.values())#{x:column_aliases[x] for x in column if x in column_aliases}
         s_instance.alias = [column_aliases[(table, x)] for x in column]
         s_instance.output_columns = [Constants.COLUMN_LABEL.value + '_' + str(_i)
                         for _i in range(len(column))]
         yield s_instance
     else:
         s_instance = SqlInstance(tablename = table, columns=column)
-        sql_select = [#literal(column).label(Constants.COLUMN_LABEL.value + '_0'),
-            # sql_tables[table].c[column].label(Constants.VALUE_LABEL.value)
-            sql_tables[table].c[column].label(Constants.COLUMN_LABEL.value + '_0')
-            ]
+        sql_select = [sql_tables[table].c[column].label(Constants.COLUMN_LABEL.value + '_0')]
         s_instance.sql = _build_select(s_instance, sql_select).group_by(column)
-        # s_instance.alias = list(column_aliases.values())[0] #column_aliases.get((table, column),None)
         s_instance.alias = column_aliases[(table, column)]
         s_instance.output_columns = Constants.COLUMN_LABEL.value + '_0'
 
@@ -148,49 +124,41 @@ def _sql_selects(sql_spec, tables_dict):
                 for sql in _sql_create_instance(t,c, tables_dict, column_aliases)]
 
 
-def _validate_sql_spec(spec):  # noqa: C901 -- this prevents complexity check - TODO simplify
-    if not isinstance(spec,dict):
+def _validate_col_structure(x, allowed = (dict,)):
+    """validate the columns in a sqlspec - lists highest level, no lists below tuples, consistency, etc."""
+    if isinstance(x, dict) and (dict in allowed) and len(x) > 0:
+        return True if all([_validate_col_structure(y, allowed = (str, list, tuple)) for y in x.values()]) else False
+    elif isinstance(x, list) and (list in allowed):
+        return True if all([_validate_col_structure(y, allowed = (str,tuple)) for y in x]) else False
+    elif isinstance(x, tuple) and (tuple in allowed):
+        return all([_validate_col_structure(y, allowed=(str,)) for y in x])
+    else:
+        return isinstance(x, str) and (str in allowed)
+
+
+def _profile(x):
+    """return the number of columns of each frequency distributions"""
+    if isinstance(x,str):
+        yield 1
+    elif isinstance(x,tuple):
+        yield sum([__ for _ in x for __ in _profile(_)])
+    elif isinstance(x,list):
+        for _ in x:
+            yield from _profile(_)
+    else:
+        yield False
+
+
+def _validate_sql_spec(spec):
+    if not _validate_col_structure(spec):
         return False
-    def __validate_cols(x):
-        # cols can be a string (columnname), a list (of columns), or a tuple
-        # lists can contain strings or tuples
-        # tuples can contain strings (TODO feels like this one could be checked in a single step?)
-        # TODO and does this have to be a closure? - that could be what's triggering the simplification
-        if not all([isinstance(_,(str, list, tuple)) for _ in x]):
-            return False
-        elif not all([isinstance(__,(str, tuple)) for _ in x for __ in _ if isinstance(_, list)]):
-            return False
-        elif not all([isinstance(__, str) for _ in x for __ in _ if isinstance(_, tuple)]):
-            return False
-        elif not all([isinstance(_,str)
-                    for _ in x if isinstance(x, list)
-                    for __ in _ if isinstance(_, tuple)]):
-            return False
-        else:
-            return True
 
-    if not __validate_cols(spec.values()):
-        return False
-
-    # columns should be specified consistently
-    def __profile(x):
-        """return the number of columns of each frequency distributions"""
-        if isinstance(x,str):
-            yield 1
-        elif isinstance(x,tuple):
-            yield sum([__ for _ in x for __ in __profile(_)])
-        elif isinstance(x,list):
-            for _ in x:
-                yield from __profile(_)
-        else:
-            yield False
-
-    sql_col_numbers = [_ for _ in __profile(list(spec.values()))]
-    # check that all frequencies will be based off the same number of columns
+    sql_col_numbers = [_ for _ in _profile(list(spec.values()))]
     if not all([x==max(sql_col_numbers) for x in sql_col_numbers]):
         return False
     else:
         return True
+
 
 def _build_select(spec_instance, sql_select):
     return select(
